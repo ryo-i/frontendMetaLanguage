@@ -1,4 +1,6 @@
-import { unsei } from "./unsei";
+import * as Unsei from "../../../json/unsei.json";
+
+const unsei: string[] = Unsei.unsei;
 
 // 結果
 export let kekka = (): string => {

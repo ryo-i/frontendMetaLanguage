@@ -1,5 +1,5 @@
-// 運勢
-export const unsei: string[] = [ 
+{
+    "unsei": [ 
     "大吉",
     "吉",
     "中吉",
@@ -7,4 +7,5 @@ export const unsei: string[] = [
     "末吉",
     "凶",
     "大凶"
-];
+    ]
+}
