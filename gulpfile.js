@@ -9,6 +9,9 @@ const webpack = require("webpack");
 const webpackConfig = require("./webpack.config");
 const browserSync = require('browser-sync'); 
 const plumber = require('gulp-plumber');
+const imagemin = require('gulp-imagemin');
+const mozjpeg = require('imagemin-mozjpeg');
+const pngquant = require('imagemin-pngquant');
 
 // EJSコンパイル
 gulp.task('ejs',  (done) => {
@@ -59,21 +62,40 @@ gulp.task('browser-reload', (done) => {
 	done();
 });
 
+
+// 画像圧縮
+gulp.task('imagemin', (done) => {
+    gulp.src('./src/img/**/*.{jpg,jpeg,png,gif,svg}')
+    .pipe(imagemin(
+      [
+        pngquant({ quality: '65-80', speed: 1 }),
+        mozjpeg({ quality: 80 }),
+        imagemin.svgo(),
+        imagemin.gifsicle()
+      ]
+    ))
+    .pipe(gulp.dest('./dest/img'));
+    done();
+});
+
+
 // 監視ファイル
 gulp.task('watch-files', (done) =>  {
     gulp.watch(["./src/ejs/**/*.ejs", "./src/json/**/*.json"], gulp.task('ejs'));
     gulp.watch("./dest/*.html", gulp.task('browser-reload'));
     gulp.watch("./src/scss/**/*.scss", gulp.task('sass'));
     gulp.watch("./dest/css/*.css", gulp.task('browser-reload'));
-    gulp.watch("./src/ts/**/*.ts", gulp.task('webpack'));
+    gulp.watch(["./src/ts/**/*.ts", "./src/json/**/*.json"], gulp.task('webpack'));
     gulp.watch("./dest/js/*.js", gulp.task('browser-reload'));
+    gulp.watch("./src/img/**/*", gulp.task('imagemin'));
+    gulp.watch("./dest/img/*", gulp.task('browser-reload'));
     done();
 });
 
 // タスク実行
 gulp.task('default', 
     gulp.series(gulp.parallel(
-        'watch-files', 'browser-sync', 'ejs', 'sass', 'webpack'
+        'watch-files', 'browser-sync', 'ejs', 'sass', 'webpack', 'imagemin'
     ), (done) => {
     done();
 }));
