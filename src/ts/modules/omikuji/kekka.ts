@@ -1,4 +1,4 @@
-import * as Unsei from "../../../json/unsei.json";
+import Unsei from "../../../json/unsei.json";
 
 const unsei: string[] = Unsei.unsei;
 

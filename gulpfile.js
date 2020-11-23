@@ -4,68 +4,96 @@ const ejs = require('gulp-ejs');
 const fs = require('fs');
 const replace = require('gulp-replace'); 
 const sass = require('gulp-sass');
-const webpackStream = require("webpack-stream");
-const webpack = require("webpack");
-const webpackConfig = require("./webpack.config");
+const webpackStream = require('webpack-stream');
+const webpack = require('webpack');
+const webpackConfig = require('./webpack.config');
 const browserSync = require('browser-sync'); 
 const plumber = require('gulp-plumber');
 const imagemin = require('gulp-imagemin');
 const mozjpeg = require('imagemin-mozjpeg');
 const pngquant = require('imagemin-pngquant');
 
+
+// ファイルパス：コンパイル前
+const srcJsonFiles = './src/json/**/*.json';
+const srcDataJson = './src/json/data.json';
+const srcEjsFiles = './src/ejs/**/*.ejs';
+const srcEjsPartial = '!./src/ejs/**/_*.ejs';
+const srcScssFiles = './src/scss/**/*.scss';
+const srcTsFiles = './src/ts/**/*.ts';
+const srcImgFiles = './src/img/**/*'
+const srcImgFileType = '{jpg,jpeg,png,gif,svg}';
+
+
+// ファイルパス：コンパイル後
+const destDir = './dest/';
+const destHtmlFiles = './dest/*.html';
+const destIndexHtml = 'index.html';
+const destCssDir = './dest/css';
+const destCssFiles = './dest/css/*.css';
+const destJsDir = './dest/js';
+const destJSFiles = './dest/js/*.js';
+const destImtDir = './dest/img';
+const destImgFiles = './dest/img/*';
+
+
 // EJSコンパイル
-gulp.task('ejs',  (done) => {
-    const data = JSON.parse(fs.readFileSync('./src/json/data.json'));
-    gulp.src(["./src/ejs/**/*.ejs", "!./src/ejs/**/_*.ejs"])
+const compileEjs = (done) => {
+    const data = JSON.parse(fs.readFileSync(srcDataJson));
+    gulp.src([srcEjsFiles, srcEjsPartial])
       .pipe(plumber())
       .pipe(ejs(data))
-      .pipe(ejs({}, {}, { ext: ".html" }))
-      .pipe(rename({ extname: ".html" }))
-      .pipe(replace(/^[ \t]*\n/gmi, ""))
-      .pipe(gulp.dest("./dest/"));
+      .pipe(ejs({}, {}, { ext: '.html' }))
+      .pipe(rename({ extname: '.html' }))
+      .pipe(replace(/^[ \t]*\n/gmi, ''))
+      .pipe(gulp.dest(destDir));
     done();
-});
+};
+
 
 // sassコンパイル
-gulp.task('sass', (done) => {
-    gulp.src('./src/scss/**/*.scss')
+const compileSass = (done) => {
+    gulp.src(srcScssFiles)
         .pipe(sass({
                     outputStyle: 'expanded'
 				})
             )
-		.on("error", sass.logError)
-		.pipe(gulp.dest('./dest/css'));
-	done();
-});
+		.on('error', sass.logError)
+        .pipe(gulp.dest(destCssDir));
+    done();
+};
+
 
 // webpackのバンドル実行
-gulp.task("webpack", (done) => {
+const bundleWebpack = (done) => {
     webpackStream(webpackConfig, webpack)
-      .pipe(gulp.dest("./dest/js"));
+      .pipe(gulp.dest(destJsDir));
     done();
-});
+};
+
 
 // リロードするhtml
-gulp.task('browser-sync', (done) => {
+const reloadFile = (done) => {
     browserSync.init({
         server : {
-            baseDir : './dest/',
-            index : 'index.html',
+            baseDir : destDir,
+            index : destIndexHtml,
 		},
-	});
-	done();
-});
+    });
+    done();
+};
+
 
 // リロード設定
-gulp.task('browser-reload', (done) => {
-	browserSync.reload();
-	done();
-});
+const reloadBrowser = (done) => {
+    browserSync.reload();
+    done();
+};
 
 
 // 画像圧縮
-gulp.task('imagemin', (done) => {
-    gulp.src('./src/img/**/*.{jpg,jpeg,png,gif,svg}')
+const minifyImage = (done) => {
+    gulp.src(srcImgFiles + srcImgFileType)
     .pipe(imagemin(
       [
         pngquant({ quality: '65-80', speed: 1 }),
@@ -74,28 +102,35 @@ gulp.task('imagemin', (done) => {
         imagemin.gifsicle()
       ]
     ))
-    .pipe(gulp.dest('./dest/img'));
+    .pipe(gulp.dest(destImtDir));
     done();
-});
+};
+
+
+// タスク化
+exports.compileEjs = compileEjs;
+exports.compileSass = compileSass;
+exports.bundleWebpack = bundleWebpack;
+exports.reloadFile = reloadFile;
+exports.reloadBrowser = reloadBrowser;
+exports.minifyImage = minifyImage;
 
 
 // 監視ファイル
-gulp.task('watch-files', (done) =>  {
-    gulp.watch(["./src/ejs/**/*.ejs", "./src/json/**/*.json"], gulp.task('ejs'));
-    gulp.watch("./dest/*.html", gulp.task('browser-reload'));
-    gulp.watch("./src/scss/**/*.scss", gulp.task('sass'));
-    gulp.watch("./dest/css/*.css", gulp.task('browser-reload'));
-    gulp.watch(["./src/ts/**/*.ts", "./src/json/**/*.json"], gulp.task('webpack'));
-    gulp.watch("./dest/js/*.js", gulp.task('browser-reload'));
-    gulp.watch("./src/img/**/*", gulp.task('imagemin'));
-    gulp.watch("./dest/img/*", gulp.task('browser-reload'));
+const watchFiles = (done) => {
+    gulp.watch([srcEjsFiles, srcJsonFiles], compileEjs);
+    gulp.watch(destHtmlFiles, reloadBrowser);
+    gulp.watch(srcScssFiles, compileSass);
+    gulp.watch(destCssFiles, reloadBrowser);
+    gulp.watch([srcTsFiles, srcJsonFiles], bundleWebpack);
+    gulp.watch(destJSFiles, reloadBrowser);
+    gulp.watch(srcImgFiles, minifyImage);
+    gulp.watch(destImgFiles, reloadBrowser);
     done();
-});
+};
+
 
 // タスク実行
-gulp.task('default', 
-    gulp.series(gulp.parallel(
-        'watch-files', 'browser-sync', 'ejs', 'sass', 'webpack', 'imagemin'
-    ), (done) => {
-    done();
-}));
+exports.default = gulp.series(
+    watchFiles, reloadFile, compileEjs, compileSass, bundleWebpack, minifyImage
+);
