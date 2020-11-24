@@ -94,15 +94,15 @@ const reloadBrowser = (done) => {
 // 画像圧縮
 const minifyImage = (done) => {
     gulp.src(srcImgFiles + srcImgFileType)
-    .pipe(imagemin(
-      [
-        pngquant({ quality: '65-80', speed: 1 }),
-        mozjpeg({ quality: 80 }),
-        imagemin.svgo(),
-        imagemin.gifsicle()
-      ]
-    ))
-    .pipe(gulp.dest(destImtDir));
+        .pipe(imagemin(
+        [
+            pngquant({ quality: '65-80', speed: 1 }),
+            mozjpeg({ quality: 80 }),
+            imagemin.svgo(),
+            imagemin.gifsicle()
+        ]
+        ))
+        .pipe(gulp.dest(destImtDir));
     done();
 };
 
